@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ритм & Фокус • Нейротентика</title>
+  <!-- Стили Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Шрифты -->
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- React & Babel для работы прямо в браузере -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Иконки Lucide -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-[#FAF8F5] text-[#1C1917] antialiased">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useMemo, useEffect } = React;
+
+    // Универсальный компонент иконок для браузера
+    const Icon = ({ name, className = "w-4 h-4", style = {} }) => {
+      useEffect(() => {
+        if (window.lucide) {
+          window.lucide.createIcons();
+        }
+      });
+      return <i data-lucide={name} className={className} style={style}></i>;
+    };
+
+    const WEEK_DAYS = [
+      { id: 0, short: 'Пн', full: 'Понедельник', date: '12 окт', rawDate: '12.10', planNote: '13:00 Планерка • ПРОДАЖА ЗАПИСЕЙ + донабор' },
+      { id: 1, short: 'Вт', full: 'Вторник', date: '13 окт', rawDate: '13.10', planNote: 'Роадмеп • Сториборд по ДЧ • 1–2 сообщения • Тётя Сара' },
+      { id: 2, short: 'Ср', full: 'Среда', date: '14 окт', rawDate: '14.10', planNote: '13:00 Планерка • Дожим «отказников» на записи курса' },
+      { id: 3, short: 'Чт', full: 'Четверг', date: '15 окт', rawDate: '15.10', isToday: true, planNote: 'Поступление 10к (индив. урок) • Юнит-экономика 3 сценария' },
+      { id: 4, short: 'Пт', full: 'Пятница', date: '16 окт', rawDate: '16.10', planNote: '13:00 Планерка • Удержание учеников + 1–2 продажи записей' },
+      { id: 5, short: 'Сб', full: 'Суббота', date: '17 окт', rawDate: '17.10', planNote: 'Мягкие продажи записей • Сбор кейсов учеников' },
+      { id: 6, short: 'Вс', full: 'Воскресенье', date: '18 окт', rawDate: '18.10', planNote: 'Собрать отзывы/результаты первых недель — топливо для продаж' },
+    ];
+
+    const INITIAL_HABITS = [
+      {
+        id: 'h-tables',
+        title: 'Таблички и сводка показателей',
+        category: 'Система • ОП',
+        iconName: 'table-2',
+        targetPerDay: 1,
+        unit: 'сводка',
+        color: '#2D6A4F',
+        badgeNote: 'оплата 10к',
+        history: [1, 1, 1, 1, 0, 1, 1],
+        notes: {
+          0: 'Обновила статусы по донабору',
+          3: 'Оплата 10к (индив. урок занесён в фонды)',
+          5: 'Сверка декомпозиции за неделю'
+        }
+      },
+      {
+        id: 'h-outreach',
+        title: 'Отправить 5 сообщений (4 подхода)',
+        category: 'Спринт продаж',
+        iconName: 'message-square',
+        targetPerDay: 4,
+        unit: 'блока по 5',
+        color: '#D97706',
+        badgeNote: '20 касаний/день',
+        history: [4, 4, 4, 3, 0, 2, 2],
+        notes: {
+          0: 'Сформирован оффер на записи курса',
+          1: 'Написала отказникам и «подумаю»',
+          3: '3 из 4 блоков отправлено, 1 вечерний дожим'
+        }
+      },
+      {
+        id: 'h-Decomposition',
+        title: 'Декомпозиция 20–30к и казна',
+        category: 'Финансы',
+        iconName: 'target',
+        targetPerDay: 1,
+        unit: 'сверка',
+        color: '#0F766E',
+        badgeNote: 'Цель = 30к/нед',
+        history: [1, 1, 0, 1, 0, 1, 1],
+        notes: {
+          1: 'Юнит-экономика: 3 сценария (2.5к / 4к / 5к)',
+          3: 'Фокус недели = 30к + оплата за терапию 1 раз/нед'
+        }
+      },
+      {
+        id: 'h-mailing',
+        title: 'Рассылка и ИИ-блогер (5 сообщений)',
+        category: 'Трафик • Рилс',
+        iconName: 'mail',
+        targetPerDay: 2,
+        unit: 'канала',
+        color: '#7C3AED',
+        badgeNote: 'МК Рилс + Аватары',
+        history: [2, 1, 2, 2, 0, 2, 2],
+        notes: {
+          0: 'Рассылка группы МК Рилс + Диджитал аватарс ВК',
+          3: 'Отправлены офферы повторным с коротышей'
+        }
+      },
+      {
+        id: 'h-sport',
+        title: 'Спорт: тренировки (руки и плечи)',
+        category: 'Тело • Зал 5.5к',
+        iconName: 'dumbbell',
+        targetPerDay: 1,
+        unit: 'тренировка',
+        color: '#E07A5F',
+        badgeNote: 'руки и плечи',
+        history: [1, 0, 1, 1, 0, 1, 1],
+        notes: {
+          2: 'Силовая: руки и плечи',
+          3: 'Разминка + верхний плечевой пояс'
+        }
+      },
+      {
+        id: 'h-lang',
+        title: 'Инглиш + Дойч',
+        category: 'Саморазвитие',
+        iconName: 'book-open',
+        targetPerDay: 2,
+        unit: 'языка',
+        color: '#2563EB',
+        badgeNote: 'инглиш / дойч',
+        history: [2, 2, 1, 2, 0, 2, 2],
+        notes: {
+          1: 'Инглиш + Дойч разговорная практика',
+          3: 'Оба блока закрыты утром'
+        }
+      },
+      {
+        id: 'h-pdd',
+        title: 'ПДД: перекрёстки и билеты Дром',
+        category: 'Вождение',
+        iconName: 'car',
+        targetPerDay: 2,
+        unit: 'блока',
+        color: '#4F46E5',
+        badgeNote: 'перекрёстки • дром',
+        history: [1, 2, 2, 1, 0, 2, 2],
+        notes: {
+          1: 'Разобрала сложные перекрёстки на Дроме',
+          3: 'Билеты Дром без ошибок'
+        }
+      },
+      {
+        id: 'h-home',
+        title: 'Быт, уют и ресурс',
+        category: 'Дом • Казна',
+        iconName: 'home',
+        targetPerDay: 1,
+        unit: 'ритуал',
+        color: '#B45309',
+        badgeNote: 'потенциал 37к',
+        history: [1, 1, 1, 1, 0, 1, 1],
+        notes: {
+          3: 'Закупка еды 2.5к (раз в 3 дня), подготовка к зиме'
+        }
+      }
+    ];
+
+    const INITIAL_DAILY_GOALS = {
+      0: [
+        { id: 'g-mon-1', text: '13:00 Планерка (синхронизация целей недели = 30к)', done: true, priority: 'high', tag: 'Планерка' },
+        { id: 'g-mon-2', text: 'Сформировать оффер на записи: «Все уроки + материалы, в своём темпе»', done: true, priority: 'high', tag: 'Продажи' },
+        { id: 'g-mon-3', text: 'Написать отказникам и «подумаю» (цель: 2–3 продажи записей + 1–2 донабор)', done: true, priority: 'medium', tag: 'Дожим' },
+      ],
+      1: [
+        { id: 'g-tue-1', text: 'Собрать Роадмеп и просчитать Юнит-экономику (3 сценария)', done: true, priority: 'high', tag: 'Стратегия' },
+        { id: 'g-tue-2', text: 'Сториборд по ДЧ + Дожать по ДЧ мультик', done: true, priority: 'high', tag: 'Продакшн' },
+        { id: 'g-tue-3', text: 'Тётя Сара + по 1–2 персональных сообщения в день', done: true, priority: 'medium', tag: 'Контент' },
+        { id: 'g-tue-4', text: 'Повторная продажа: поступление 2,5 к (вт / след вт)', done: true, priority: 'medium', tag: 'Фонды' },
+      ],
+      2: [
+        { id: 'g-wed-1', text: '13:00 Планерка + ревизия статусов в листе «Продажи»', done: true, priority: 'high', tag: 'Планерка' },
+        { id: 'g-wed-2', text: 'Звоночек с новым лидом + дожим тех, кто обещал ответ', done: true, priority: 'high', tag: 'Звонки' },
+        { id: 'g-wed-3', text: 'Офер повторным клиентам с коротышей и группе МК Рилс', done: false, priority: 'medium', tag: 'База' },
+      ],
+      3: [
+        { id: 'g-thu-1', text: 'Поступление 10 000 ₽ — индивидуальный урок (разнести по фондам)', done: true, priority: 'high', tag: 'Казна +10к' },
+        { id: 'g-thu-2', text: 'Провести 2 индивидуальные консы за 5к (цель недели = 30к)', done: true, priority: 'high', tag: 'Продажи' },
+        { id: 'g-thu-3', text: 'Дожать 6 тёплых лидов со статусом «дожим 2–10к» (Скоков, Кузнецова, Архипова)', done: false, priority: 'high', tag: 'Follow-up' },
+        { id: 'g-thu-4', text: 'Оплата за терапию (1 раз в неделю по плану)', done: false, priority: 'medium', tag: 'Броня' },
+      ],
+      4: [
+        { id: 'g-fri-1', text: '13:00 Планерка — подведение итогов рабочей пятидневки', done: false, priority: 'high', tag: 'Планерка' },
+        { id: 'g-fri-2', text: 'Проверить, как идут дела у учеников (удержание, чтобы не слились)', done: false, priority: 'high', tag: 'Кураторство' },
+        { id: 'g-fri-3', text: 'Мягкие продажи записей курса (цель: 1–2 продажи записей, 0–1 донабор)', done: false, priority: 'medium', tag: 'Продажи' },
+      ],
+      5: [
+        { id: 'g-sat-1', text: 'Спецпредложение «золотой базе» по рилсам и цифровым аватарам', done: false, priority: 'high', tag: 'Оффер' },
+        { id: 'g-sat-2', text: 'Тренировка (руки и плечи) + ПДД перекрёстки', done: false, priority: 'medium', tag: 'Ресурс' },
+      ],
+      6: [
+        { id: 'g-sun-1', text: 'Собрать отзывы и результаты первых недель учеников (топливо для продаж)', done: false, priority: 'high', tag: 'Кейсы' },
+        { id: 'g-sun-2', text: 'Подготовить список тёплых контактов на Пн: «вот что уже сделали ребята»', done: false, priority: 'medium', tag: 'План' },
+      ],
+    };
+
+    const INITIAL_LEADS = [
+      { id: 'l-1', date: '03.10', name: 'Скоков Максим', handle: '@skokovmaksim', source: 'Тг', status: 'Дожим', amount: 10000, range: '2–10 к', nextTouch: '15.10', comment: 'Звонок тем, у кого указан моб. тел' },
+      { id: 'l-2', date: '03.10', name: 'Наталья Кузнецова', handle: '@toy.ga35', source: 'Инстаграм', status: 'Дожим', amount: 5000, range: '2–10 к', nextTouch: '15.10', comment: 'Отправлены условия и программа' },
+      { id: 'l-3', date: '03.10', name: 'Наталья Архипова', handle: '@arnatarget', source: 'Инстаграм', status: 'Дожим', amount: 5000, range: '2–10 к', nextTouch: '15.10', comment: 'Таргетолог, интерес к ИИ-аватарам' },
+      { id: 'l-4', date: '03.10', name: 'Ольга Раевская', handle: '@mrs_olgarusanova', source: 'Инстаграм', status: 'Договорились', amount: 10000, range: '2–10 к', nextTouch: '15.10', comment: 'Ждём оплату / бронь места' },
+      { id: 'l-5', date: '03.10', name: 'Анатолий Соколов', handle: '@idpsiholog_guru', source: 'Тг', status: 'Дожим', amount: 5000, range: '2–10 к', nextTouch: '16.10', comment: 'Ниша психология, дожим на записи' },
+      { id: 'l-6', date: '03.10', name: 'Олег Семичев', handle: '@semichevoleg', source: 'Тг', status: 'Оплатил', amount: 10000, range: '2–10 к', nextTouch: 'Выполнено', comment: 'Индив. урок 10к (четверг)' },
+      { id: 'l-7', date: '03.10', name: 'Алена', handle: 'WhatsApp', source: 'Рекомендация', status: 'Ответил', amount: 5000, range: '5 к', nextTouch: '15.10', comment: 'Написала в воцап, уточнить формат' },
+      { id: 'l-8', date: '04.10', name: 'Лениза', handle: 'Личный контакт', source: 'Рекомендация', status: 'Оплатил', amount: 5000, range: '5 к', nextTouch: 'Выполнено', comment: 'Повторное касание 4.10 — зашла' },
+      { id: 'l-9', date: '04.10', name: 'Полина дмд', handle: 'ДМД', source: 'Рекомендация', status: 'Договорились', amount: 5000, range: '5 к', nextTouch: '16.10', comment: 'Донабор / записи курса' },
+      { id: 'l-10', date: '04.10', name: 'Саша Павлов', handle: 'Тг / ВК', source: 'Холодный', status: 'Написал', amount: 4000, range: '4 к', nextTouch: '16.10', comment: 'Оффер отправлен 4.10' },
+      { id: 'l-11', date: '04.10', name: 'Халиса & Карина', handle: 'Тёплая база', source: 'Инстаграм', status: 'Ответил', amount: 5000, range: '5 к', nextTouch: '16.10', comment: 'Интересовались записью уроков' },
+      { id: 'l-12', date: '05.10', name: 'Оффер: Повторные с коротышей', handle: 'Золотая база Рилс', source: 'Тг', status: 'Дожим', amount: 15000, range: '15–20 к', nextTouch: '17.10', comment: 'Спецпредложение золотой базе + МК Рилс' },
+    ];
+
+    const LEAD_STATUSES = ['Новый', 'Написал', 'Ответил', 'Дожим', 'Договорились', 'Оплатил', 'Отказ'];
+
+    const INITIAL_KAZNA = {
+      needs: [
+        { id: 'k-1', title: 'Еда (2,5 к 1 раз в 3 дня)', amount: '2 500 ₽', done: true },
+        { id: 'k-2', title: 'Дом (оплата 6-го числа)', amount: '25 000 ₽', done: true },
+        { id: 'k-3', title: 'Дрова (на следующую неделю)', amount: '17 000 ₽', done: false },
+        { id: 'k-4', title: 'Счётчики', amount: '8 000 ₽', done: false },
+        { id: 'k-5', title: 'Вероника', amount: '5 000 ₽/нед', done: true },
+        { id: 'k-6', title: 'Оплата за терапию', amount: '1 раз/нед', done: false },
+      ],
+      wants: [
+        { id: 'w-1', title: 'Зал (абонемент)', amount: '5 500 ₽/мес' },
+        { id: 'w-2', title: 'Мафия (выезды и вечера)', amount: 'Зелье радости' },
+        { id: 'w-3', title: 'Массаж (восстановление тела)', amount: 'Курс' },
+        { id: 'w-4', title: 'Стрижка и уход', amount: 'Обновление' },
+      ],
+      bigBuys: [
+        { id: 'b-1', title: 'Телефон (обновление для съёмок)', target: 'Приоритет 1', progress: 45 },
+        { id: 'b-2', title: 'Компутур (станция под ИИ и монтаж)', target: 'Приоритет 2', progress: 30 },
+        { id: 'b-3', title: 'Машинка BMW 5', target: '2 000 000 ₽', progress: 15 },
+      ],
+      globalBuys: [
+        { id: 'gl-1', title: 'Своя Земля', note: 'Фундамент под усадьбу' },
+        { id: 'gl-2', title: 'Постройка дома', note: 'Пространство силы' },
+        { id: 'gl-3', title: 'Евродвушка', note: 'Бюджет от 10 ед. (10 млн ₽)' },
+      ],
+      incomes: [
+        { id: 'inc-1', title: 'Индивидуальный урок (Чт)', amount: '10 000 ₽' },
+        { id: 'inc-2', title: 'Повторная продажа (Вт / след Вт)', amount: '2 500 ₽' },
+        { id: 'inc-3', title: 'Терапия (доход)', amount: '10 000 ₽/мес' },
+        { id: 'inc-4', title: '2 индив. консы по 5к + записи', amount: '10 000 ₽' },
+      ]
+    };
+
+    const STRATEGY_TRACKS = [
+      {
+        name: 'Проект «Астрологиня» (B2C & Автоворонка)',
+        subtitle: 'Охватные ролики, книги 500/900 ₽ и автооплаты',
+        steps: [
+          { period: '3 кв. 2026', goal: 'Тест ниши, пробить охватные ролики', detail: 'Проверка связок и стоп-скролл хуков', done: true },
+          { period: '4 кв. 2026', goal: 'Автооплаты на 50 000 ₽/мес', detail: 'Декомпозиция: X книг за 500 ₽, Y за 900 ₽', active: true },
+          { period: '1 кв. 2027', goal: 'Выход на 100 000 ₽/мес', detail: 'Стабильный трафик с Reels в бота' },
+          { period: '2 кв. 2027', goal: 'Масштаб до 350 000 ₽/мес', detail: 'Расширение продуктовой матрицы' },
+          { period: '3 кв. 2027', goal: '500 000 – 750 000 ₽/мес', detail: 'Команда контента и автовебинары' },
+          { period: '4 кв. 2027', goal: '1 ед. / мес (1 000 000 ₽/мес)', detail: 'Полноценная медиа-экосистема' },
+        ]
+      },
+      {
+        name: 'Продажа B2B-курса (ИИ-аватары & Рилс)',
+        subtitle: 'Лид-магнит 30к → Основной 80–200к → VIP 350к',
+        steps: [
+          { period: '4 кв. 2025/26', goal: 'Тест конверсии и продуктовой линейки', detail: 'Лид-магнит 30к, основной 80–200к, VIP 350к – 1 млн', active: true },
+          { period: '1–3 ноября', goal: 'Предпродажа в новую группу (старт ~январь)', detail: 'Оффер по листу ожидания на 3 дня + кейсы учеников', active: true },
+          { period: '1 кв. 2027', goal: '1 ед. / мес (1 000 000 ₽)', detail: 'Откатать воронку, скрипты, CRM, регламент' },
+          { period: '2 кв. 2027', goal: '1,5 ед. / мес (1 500 000 ₽)', detail: '2 новых продажника + новые источники трафика' },
+          { period: '3 кв. 2027', goal: '3 ед. / мес (3 000 000 ₽)', detail: 'Отдел продаж 5 человек, 10 источников трафика' },
+          { period: '4 кв. 2027', goal: '5 ед. / мес на запуск (5 000 000 ₽)', detail: 'Отдел продаж 10 человек, строим отдел маркетинга' },
+        ]
+      }
+    ];
+
+    function App() {
+      const [selectedDay, setSelectedDay] = useState(3);
+      const [activeSection, setActiveSection] = useState('rhythm');
+
+      // Загрузка из localStorage для сохранения прогресса между сессиями
+      const [habits, setHabits] = useState(() => {
+        const saved = localStorage.getItem('neuro_habits_v1');
+        return saved ? JSON.parse(saved) : INITIAL_HABITS;
+      });
+      const [dailyGoals, setDailyGoals] = useState(() => {
+        const saved = localStorage.getItem('neuro_goals_v1');
+        return saved ? JSON.parse(saved) : INITIAL_DAILY_GOALS;
+      });
+      const [leads, setLeads] = useState(() => {
+        const saved = localStorage.getItem('neuro_leads_v1');
+        return saved ? JSON.parse(saved) : INITIAL_LEADS;
+      });
+      const [kazna, setKazna] = useState(() => {
+        const saved = localStorage.getItem('neuro_kazna_v1');
+        return saved ? JSON.parse(saved) : INITIAL_KAZNA;
+      });
+
+      useEffect(() => { localStorage.setItem('neuro_habits_v1', JSON.stringify(habits)); }, [habits]);
+      useEffect(() => { localStorage.setItem('neuro_goals_v1', JSON.stringify(dailyGoals)); }, [dailyGoals]);
+      useEffect(() => { localStorage.setItem('neuro_leads_v1', JSON.stringify(leads)); }, [leads]);
+      useEffect(() => { localStorage.setItem('neuro_kazna_v1', JSON.stringify(kazna)); }, [kazna]);
+
+      const [newGoalText, setNewGoalText] = useState('');
+      const [newHabitTitle, setNewHabitTitle] = useState('');
+      const [newHabitCategory, setNewHabitCategory] = useState('Продажи');
+      const [newHabitTarget, setNewHabitTarget] = useState(1);
+      const [showAddHabit, setShowAddHabit] = useState(false);
+      const [editingNoteId, setEditingNoteId] = useState(null);
+      const [hoveredChartDay, setHoveredChartDay] = useState(null);
+
+      const [targetRevenue, setTargetRevenue] = useState(30000);
+      const [ticketPrice, setTicketPrice] = useState(5000);
+      const [statusFilter, setStatusFilter] = useState('Все');
+
+      const resetAllData = () => {
+        if (confirm('Вернуть исходные данные из таблицы «Продажи_Нейротентика»?')) {
+          setHabits(INITIAL_HABITS);
+          setDailyGoals(INITIAL_DAILY_GOALS);
+          setLeads(INITIAL_LEADS);
+          setKazna(INITIAL_KAZNA);
+        }
+      };
+
+      const getDayCompletionStats = (dayIdx) => {
+        const dayTasks = dailyGoals[dayIdx] || [];
+        const completedTasks = dayTasks.filter((t) => t.done).length;
+        const totalTasks = dayTasks.length;
+        const totalItems = habits.length + totalTasks;
+        const completedHabitsCount = habits.filter((h) => (h.history[dayIdx] || 0) >= h.targetPerDay).length;
+        const completedItems = completedHabitsCount + completedTasks;
+        const percentage = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+
+        return {
+          percentage,
+          completedHabitsCount,
+          totalHabitsCount: habits.length,
+          completedTasks,
+          totalTasks,
+        };
+      };
+
+      const weeklyStats = useMemo(() => {
+        return WEEK_DAYS.map((d) => ({
+          ...d,
+          ...getDayCompletionStats(d.id),
+        }));
+      }, [habits, dailyGoals]);
+
+      const currentDayStats = weeklyStats[selectedDay];
+
+      const getHabitStreak = (habit) => {
+        let currentStreak = 0;
+        for (let i = selectedDay; i >= 0; i--) {
+          if ((habit.history[i] || 0) >= habit.targetPerDay) currentStreak++;
+          else break;
+        }
+        let bestStreak = 0;
+        let temp = 0;
+        for (let i = 0; i < 7; i++) {
+          if ((habit.history[i] || 0) >= habit.targetPerDay) {
+            temp++;
+            if (temp > bestStreak) bestStreak = temp;
+          } else temp = 0;
+        }
+        return { currentStreak, bestStreak };
+      };
+
+      const globalMetrics = useMemo(() => {
+        const avgCompletion = Math.round(
+          weeklyStats.slice(0, selectedDay + 1).reduce((acc, s) => acc + s.percentage, 0) / (selectedDay + 1)
+        );
+        let maxStreakHabit = habits[0] || { title: '—' };
+        let maxStreakVal = 0;
+        habits.forEach((h) => {
+          const { bestStreak } = getHabitStreak(h);
+          if (bestStreak > maxStreakVal) {
+            maxStreakVal = bestStreak;
+            maxStreakHabit = h;
+          }
+        });
+
+        const paidRevenue = leads.filter((l) => l.status === 'Оплатил').reduce((sum, l) => sum + l.amount, 0);
+        const pipelineRevenue = leads
+          .filter((l) => l.status === 'Дожим' || l.status === 'Договорились' || l.status === 'Ответил')
+          .reduce((sum, l) => sum + l.amount, 0);
+
+        return {
+          avgCompletion,
+          maxStreakVal,
+          maxStreakHabitTitle: maxStreakHabit.title,
+          paidRevenue,
+          pipelineRevenue,
+        };
+      }, [weeklyStats, habits, selectedDay, leads]);
+
+      const toggleHabitProgress = (habitId, dayIdx = selectedDay, delta = null) => {
+        setHabits((prev) =>
+          prev.map((h) => {
+            if (h.id !== habitId) return h;
+            const nextHistory = [...h.history];
+            const currentVal = nextHistory[dayIdx] || 0;
+            if (delta !== null) {
+              nextHistory[dayIdx] = Math.max(0, Math.min(h.targetPerDay, currentVal + delta));
+            } else {
+              nextHistory[dayIdx] = h.targetPerDay === 1
+                ? (currentVal >= 1 ? 0 : 1)
+                : (currentVal >= h.targetPerDay ? 0 : currentVal + 1);
+            }
+            return { ...h, history: nextHistory };
+          })
+        );
+      };
+
+      const updateHabitNote = (habitId, noteText) => {
+        setHabits((prev) =>
+          prev.map((h) => (h.id !== habitId ? h : { ...h, notes: { ...h.notes, [selectedDay]: noteText } }))
+        );
+      };
+
+      const handleAddHabit = (e) => {
+        e.preventDefault();
+        if (!newHabitTitle.trim()) return;
+        setHabits((prev) => [
+          ...prev,
+          {
+            id: `h-${Date.now()}`,
+            title: newHabitTitle.trim(),
+            category: newHabitCategory,
+            iconName: 'sparkles',
+            targetPerDay: Math.max(1, Math.min(10, Number(newHabitTarget) || 1)),
+            unit: 'раз',
+            color: '#2D6A4F',
+            badgeNote: 'новая привычка',
+            history: [0, 0, 0, 0, 0, 0, 0],
+            notes: {},
+          },
+        ]);
+        setNewHabitTitle('');
+        setShowAddHabit(false);
+      };
+
+      const deleteHabit = (habitId) => setHabits((prev) => prev.filter((h) => h.id !== habitId));
+
+      const toggleGoal = (goalId) => {
+        setDailyGoals((prev) => ({
+          ...prev,
+          [selectedDay]: (prev[selectedDay] || []).map((g) => (g.id === goalId ? { ...g, done: !g.done } : g)),
+        }));
+      };
+
+      const handleAddGoal = (e) => {
+        e.preventDefault();
+        if (!newGoalText.trim()) return;
+        setDailyGoals((prev) => ({
+          ...prev,
+          [selectedDay]: [
+            ...(prev[selectedDay] || []),
+            { id: `g-${Date.now()}`, text: newGoalText.trim(), done: false, priority: 'high', tag: 'Фокус дня' },
+          ],
+        }));
+        setNewGoalText('');
+      };
+
+      const deleteGoal = (goalId) => {
+        setDailyGoals((prev) => ({
+          ...prev,
+          [selectedDay]: (prev[selectedDay] || []).filter((g) => g.id !== goalId),
+        }));
+      };
+
+      const cycleLeadStatus = (leadId) => {
+        setLeads((prev) =>
+          prev.map((l) => {
+            if (l.id !== leadId) return l;
+            const idx = LEAD_STATUSES.indexOf(l.status);
+            return { ...l, status: LEAD_STATUSES[(idx + 1) % LEAD_STATUSES.length] };
+          })
+        );
+      };
+
+      const toggleKaznaNeed = (id) => {
+        setKazna((prev) => ({
+          ...prev,
+          needs: prev.needs.map((n) => (n.id === id ? { ...n, done: !n.done } : n)),
+        }));
+      };
+
+      const chartPoints = useMemo(() => {
+        const width = 560, height = 165, padX = 32, padY = 24;
+        const usableW = width - padX * 2, usableH = height - padY * 2;
+        return weeklyStats.map((stat, idx) => ({
+          x: padX + (idx / 6) * usableW,
+          y: padY + usableH - (stat.percentage / 100) * usableH,
+          ...stat,
+        }));
+      }, [weeklyStats]);
+
+      const svgPath = useMemo(() => {
+        if (chartPoints.length === 0) return '';
+        let d = `M ${chartPoints[0].x} ${chartPoints[0].y}`;
+        for (let i = 0; i < chartPoints.length - 1; i++) {
+          const curr = chartPoints[i], next = chartPoints[i + 1];
+          const ctrlX1 = curr.x + (next.x - curr.x) * 0.45;
+          const ctrlX2 = curr.x + (next.x - curr.x) * 0.55;
+          d += ` C ${ctrlX1} ${curr.y}, ${ctrlX2} ${next.y}, ${next.x} ${next.y}`;
+        }
+        return d;
+      }, [chartPoints]);
+
+      const svgAreaPath = useMemo(() => {
+        if (!svgPath || chartPoints.length === 0) return '';
+        return `${svgPath} L ${chartPoints[chartPoints.length - 1].x} 148 L ${chartPoints[0].x} 148 Z`;
+      }, [svgPath, chartPoints]);
+
+      const filteredLeads = useMemo(() => {
+        if (statusFilter === 'Все') return leads;
+        return leads.filter((l) => l.status === statusFilter);
+      }, [leads, statusFilter]);
+
+      return (
+        <div className="min-h-screen" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          <div className="h-1.5 w-full bg-gradient-to-r from-[#2D6A4F] via-[#52B788] to-[#D97706]" />
+
+          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-7">
+            {/* ШАПКА */}
+            <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-7 border-b border-[#E7E2DA]">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#EFECE6] text-[#57534E] text-xs font-medium mb-3">
+                  <Icon name="calendar" className="w-3.5 h-3.5 text-[#2D6A4F]" />
+                  <span>Неделя 12.10 – 18.10 • Автосохранение включено</span>
+                  <span className="text-[#A8A29E]">|</span>
+                  <button onClick={resetAllData} className="text-[#78716C] hover:text-[#1C1917] underline">
+                    Сбросить к данным таблицы
+                  </button>
+                </div>
+                <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-[#1C1917]" style={{ fontFamily: "'Newsreader', Georgia, serif" }}>
+                  Ритм & Фокус • <span className="italic font-normal text-[#2D6A4F]">Нейротентика</span>
+                </h1>
+                <p className="mt-1.5 text-sm sm:text-base text-[#78716C] max-w-2xl">
+                  {WEEK_DAYS[selectedDay].full}, {WEEK_DAYS[selectedDay].date} — {WEEK_DAYS[selectedDay].planNote}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="bg-[#FFFDF9] border border-[#E7E2DA] rounded-2xl px-4 py-3 shadow-sm flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-[#ECFDF5] flex items-center justify-center text-[#2D6A4F]">
+                    <Icon name="wallet" className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wider font-semibold text-[#78716C]">Оплачено / План 30к</div>
+                    <div className="text-lg font-semibold text-[#1C1917] flex items-baseline gap-1.5" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                      <span>{(globalMetrics.paidRevenue / 1000).toFixed(0)}к ₽</span>
+                      <span className="text-xs font-normal text-[#2D6A4F] bg-[#ECFDF5] px-1.5 py-0.5 rounded-md">
+                        +{Math.round(globalMetrics.pipelineRevenue / 1000)}к в дожиме
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-[#FFFDF9] border border-[#E7E2DA] rounded-2xl px-4 py-2.5 shadow-sm flex items-center gap-3.5">
+                  <div className="relative w-12 h-12 flex items-center justify-center">
+                    <svg className="w-12 h-12 -rotate-90" viewBox="0 0 48 48">
+                      <circle cx="24" cy="24" r="19" fill="none" stroke="#EFECE6" strokeWidth="4.5" />
+                      <circle
+                        cx="24" cy="24" r="19" fill="none" stroke="#2D6A4F" strokeWidth="4.5" strokeLinecap="round"
+                        strokeDasharray={2 * Math.PI * 19}
+                        strokeDashoffset={2 * Math.PI * 19 * (1 - currentDayStats.percentage / 100)}
+                      />
+                    </svg>
+                    <span className="absolute text-xs font-semibold text-[#1C1917]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                      {currentDayStats.percentage}%
+                    </span>
+                  </div>
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wider font-semibold text-[#78716C]">
+                      Ритм дня ({WEEK_DAYS[selectedDay].short})
+                    </div>
+                    <div className="text-xs text-[#57534E] font-medium mt-0.5">
+                      {currentDayStats.completedHabitsCount}/{currentDayStats.totalHabitsCount} привычек • {currentDayStats.completedTasks}/{currentDayStats.totalTasks} задач
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </header>
+
+            {/* ПЕРЕКЛЮЧАТЕЛЬ ДНЕЙ И ВКЛАДОК */}
+            <div className="mt-6 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+              <div className="grid grid-cols-7 gap-2 flex-1">
+                {weeklyStats.map((day) => {
+                  const isSelected = day.id === selectedDay;
+                  return (
+                    <button
+                      key={day.id}
+                      onClick={() => setSelectedDay(day.id)}
+                      className={`flex flex-col items-center py-2.5 px-2 rounded-2xl border transition-all duration-150 ${
+                        isSelected
+                          ? 'bg-[#1C1917] text-[#FAF8F5] border-[#1C1917] shadow-md'
+                          : 'bg-[#FFFDF9] text-[#1C1917] border-[#E7E2DA] hover:bg-[#F5F2EB]'
+                      }`}
+                    >
+                      <span className={`text-xs font-semibold uppercase ${isSelected ? 'text-[#A8A29E]' : 'text-[#78716C]'}`}>
+                        {day.short}
+                      </span>
+                      <span className="text-xs sm:text-sm font-medium mt-0.5" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                        {day.rawDate}
+                      </span>
+                      <div className="w-full max-w-[44px] h-1.5 rounded-full bg-black/10 overflow-hidden mt-2">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${day.percentage}%`,
+                            backgroundColor: isSelected ? '#52B788' : day.percentage >= 80 ? '#2D6A4F' : '#D97706',
+                          }}
+                        />
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="inline-flex p-1 rounded-2xl bg-[#EFECE6] border border-[#E7E2DA]">
+                {[
+                  { id: 'rhythm', label: 'Ритм и задачи' },
+                  { id: 'sales', label: 'Лиды и Декомпозиция' },
+                  { id: 'kazna', label: 'Казна и Стратегия' },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveSection(tab.id)}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
+                      activeSection === tab.id ? 'bg-[#FFFDF9] text-[#1C1917] shadow-sm border border-[#E7E2DA]' : 'text-[#57534E]'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ВКЛАДКА 1: РИТМ И ЗАДАЧИ */}
+            {activeSection === 'rhythm' && (
+              <main className="mt-7 grid grid-cols-1 lg:grid-cols-12 gap-7 items-start">
+                <div className="lg:col-span-5 space-y-6">
+                  {/* Трекер привычек */}
+                  <section className="bg-[#FFFDF9] border border-[#E7E2DA] rounded-3xl p-5 sm:p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-xl font-semibold text-[#1C1917]" style={{ fontFamily: "'Newsreader', Georgia, serif" }}>
+                        Трекер привычек и спринт
+                      </h2>
+                      <button
+                        onClick={() => setShowAddHabit(!showAddHabit)}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-[#EFECE6] hover:bg-[#E5E0D8]"
+                      >
+                        + Привычка
+                      </button>
+                    </div>
+
+                    {showAddHabit && (
+                      <form onSubmit={handleAddHabit} className="mb-4 p-3.5 rounded-2xl bg-[#FAF8F5] border border-[#E7E2DA] space-y-2.5">
+                        <input
+                          type="text"
+                          value={newHabitTitle}
+                          onChange={(e) => setNewHabitTitle(e.target.value)}
+                          placeholder="Название привычки..."
+                          className="w-full px-3 py-2 text-sm bg-white border border-[#E7E2DA] rounded-xl"
+                        />
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number" min="1" max="10"
+                            value={newHabitTarget}
+                            onChange={(e) => setNewHabitTarget(e.target.value)}
+                            className="w-16 px-2 py-1.5 text-xs bg-white border border-[#E7E2DA] rounded-xl text-center"
+                          />
+                          <button type="submit" className="ml-auto px-3.5 py-1.5 rounded-xl bg-[#2D6A4F] text-white text-xs font-semibold">
+                            Сохранить
+                          </button>
+                        </div>
+                      </form>
+                    )}
+
+                    <div className="space-y-2.5">
+                      {habits.map((habit) => {
+                        const currentVal = habit.history[selectedDay] || 0;
+                        const isDone = currentVal >= habit.targetPerDay;
+                        const { currentStreak } = getHabitStreak(habit);
+                        const dayNote = habit.notes?.[selectedDay] || '';
+
+                        return (
+                          <div
+                            key={habit.id}
+                            className={`rounded-2xl border p-3.5 transition-all ${
+                              isDone ? 'bg-[#F6FBF8] border-[#B7E4C7]' : 'bg-[#FAF8F5]/60 border-[#E7E2DA]'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-start gap-3">
+                                <button
+                                  onClick={() => toggleHabitProgress(habit.id, selectedDay)}
+                                  className={`mt-0.5 w-7 h-7 rounded-xl flex items-center justify-center border font-bold text-xs ${
+                                    isDone ? 'bg-[#2D6A4F] border-[#2D6A4F] text-white' : 'bg-white border-[#D6D0C4] text-transparent'
+                                  }`}
+                                >
+                                  ✓
+                                </button>
+                                <div>
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    <span className={`text-sm font-semibold ${isDone ? 'line-through text-[#78716C]' : 'text-[#1C1917]'}`}>
+                                      {habit.title}
+                                    </span>
+                                    {habit.badgeNote && (
+                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#EFECE6] text-[#57534E]">
+                                        {habit.badgeNote}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-1 text-xs text-[#78716C]">
+                                    <span>{habit.category}</span>
+                                    <span>•</span>
+                                    <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                                      {currentVal}/{habit.targetPerDay} {habit.unit}
+                                    </span>
+                                    {currentStreak > 0 && (
+                                      <span className="text-[11px] font-semibold text-[#D97706] bg-[#FEF3C7] px-1.5 py-0.5 rounded-md">
+                                        🔥 {currentStreak} дн.
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-1">
+                                {habit.targetPerDay > 1 && (
+                                  <div className="inline-flex items-center bg-white border border-[#E7E2DA] rounded-xl p-0.5">
+                                    <button onClick={() => toggleHabitProgress(habit.id, selectedDay, -1)} className="w-6 h-6 text-xs font-bold">−</button>
+                                    <span className="px-1.5 text-xs font-semibold">{currentVal}</span>
+                                    <button onClick={() => toggleHabitProgress(habit.id, selectedDay, 1)} className="w-6 h-6 text-xs font-bold text-[#2D6A4F]">+</button>
+                                  </div>
+                                )}
+                                <button
+                                  onClick={() => setEditingNoteId(editingNoteId === habit.id ? null : habit.id)}
+                                  className="px-2 py-1 rounded-lg text-xs text-[#78716C] hover:bg-[#EFECE6]"
+                                  title="Заметка"
+                                >
+                                  ✎
+                                </button>
+                                <button
+                                  onClick={() => deleteHabit(habit.id)}
+                                  className="px-1.5 py-1 rounded-lg text-xs text-[#A8A29E] hover:text-red-600"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            </div>
+
+                            {(dayNote || editingNoteId === habit.id) && (
+                              <div className="mt-2 pt-2 border-t border-[#E7E2DA]/70">
+                                {editingNoteId === habit.id ? (
+                                  <input
+                                    type="text"
+                                    value={dayNote}
+                                    onChange={(e) => updateHabitNote(habit.id, e.target.value)}
+                                    onBlur={() => setEditingNoteId(null)}
+                                    onKeyDown={(e) => e.key === 'Enter' && setEditingNoteId(null)}
+                                    autoFocus
+                                    placeholder="Заметка за день..."
+                                    className="w-full text-xs bg-white border border-[#D6D0C4] rounded-lg px-2.5 py-1.5"
+                                  />
+                                ) : (
+                                  <div onClick={() => setEditingNoteId(habit.id)} className="text-xs text-[#57534E] italic cursor-pointer">
+                                    «{dayNote}»
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+
+                  {/* Фокус и задачи дня */}
+                  <section className="bg-[#FFFDF9] border border-[#E7E2DA] rounded-3xl p-5 sm:p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                      <h2 className="text-xl font-semibold text-[#1C1917]" style={{ fontFamily: "'Newsreader', Georgia, serif" }}>
+                        Фокус и задачи на {WEEK_DAYS[selectedDay].date}
+                      </h2>
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#ECFDF5] text-[#2D6A4F]">
+                        {currentDayStats.completedTasks}/{currentDayStats.totalTasks}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      {(dailyGoals[selectedDay] || []).map((goal) => (
+                        <div
+                          key={goal.id}
+                          onClick={() => toggleGoal(goal.id)}
+                          className={`flex items-start justify-between gap-3 p-3 rounded-2xl border cursor-pointer ${
+                            goal.done ? 'bg-[#F6FBF8] border-[#B7E4C7] text-[#78716C]' : 'bg-[#FAF8F5]/70 border-[#E7E2DA]'
+                          }`}
+                        >
+                          <div className="flex items-start gap-2.5">
+                            <span className="mt-0.5 text-sm font-bold text-[#2D6A4F]">{goal.done ? '✓' : '○'}</span>
+                            <div>
+                              <div className={`text-xs sm:text-sm font-medium ${goal.done ? 'line-through text-[#78716C]' : 'text-[#1C1917]'}`}>
+                                {goal.text}
+                              </div>
+                              <span className="inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-md bg-[#FEF3C7] text-[#B45309]">
+                                {goal.tag}
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); deleteGoal(goal.id); }}
+                            className="text-xs text-[#A8A29E] hover:text-red-600"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    <form onSubmit={handleAddGoal} className="mt-4 flex gap-2">
+                      <input
+                        type="text"
+                        value={newGoalText}
+                        onChange={(e) => setNewGoalText(e.target.value)}
+                        placeholder="Добавить задачу на день..."
+                        className="flex-1 text-xs sm:text-sm px-3.5 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#E7E2DA]"
+                      />
+                      <button type="submit" className="px-3.5 py-2.5 rounded-xl bg-[#1C1917] text-[#FAF8F5] text-xs font-semibold">
+                        + В план
+                      </button>
+                    </form>
+                  </section>
+                </div>
+
+                {/* ПРАВАЯ КОЛОНКА: ГРАФИК И МАТРИЦА СЕРИЙ */}
+                <div className="lg:col-span-7 space-y-6">
+                  <section className="bg-[#FFFDF9] border border-[#E7E2DA] rounded-3xl p-5 sm:p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <span className="text-xs font-semibold text-[#2D6A4F]">График серий достижений (12.10 – 18.10)</span>
+                        <h2 className="text-xl font-semibold text-[#1C1917]" style={{ fontFamily: "'Newsreader', Georgia, serif" }}>
+                          Импульс недели: привычки + продажи
+                        </h2>
+                      </div>
+                      <span className="text-xs font-semibold bg-[#EFECE6] px-2.5 py-1 rounded-lg" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                        Среднее: {globalMetrics.avgCompletion}%
+                      </span>
+                    </div>
+
+                    <div className="rounded-2xl bg-[#FAF8F5] border border-[#E7E2DA]/80 p-3">
+                      <svg viewBox="0 0 560 165" className="w-full h-44 overflow-visible">
+                        <defs>
+                          <linearGradient id="neuroGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#2D6A4F" stopOpacity="0.26" />
+                            <stop offset="100%" stopColor="#2D6A4F" stopOpacity="0.0" />
+                          </linearGradient>
+                        </defs>
+                        {[25, 50, 75, 100].map((level) => {
+                          const y = 24 + (165 - 48) * (1 - level / 100);
+                          return (
+                            <g key={level}>
+                              <line x1="32" y1={y} x2="528" y2={y} stroke="#E7E2DA" strokeDasharray="3 3" />
+                              <text x="4" y={y + 3} fontSize="9" fill="#A8A29E">{level}%</text>
+                            </g>
+                          );
+                        })}
+                        <path d={svgAreaPath} fill="url(#neuroGrad)" />
+                        <path d={svgPath} fill="none" stroke="#2D6A4F" strokeWidth="3" strokeLinecap="round" />
+                        {chartPoints.map((pt, idx) => {
+                          const isSelected = idx === selectedDay;
+                          return (
+                            <g key={pt.id} className="cursor-pointer" onClick={() => setSelectedDay(idx)}>
+                              <circle cx={pt.x} cy={pt.y} r={isSelected ? 7 : 4.5} fill={isSelected ? '#1C1917' : '#FFFDF9'} stroke="#2D6A4F" strokeWidth="2.5" />
+                              <text x={pt.x} y={pt.y - 11} textAnchor="middle" fontSize="10" fontWeight="600" fill="#1C1917">{pt.percentage}%</text>
+                              <text x={pt.x} y={161} textAnchor="middle" fontSize="10" fontWeight={isSelected ? '700' : '500'} fill={isSelected ? '#2D6A4F' : '#78716C'}>{pt.short}</text>
+                            </g>
+                          );
+                        })}
+                      </svg>
+                    </div>
+                  </section>
+
+                  {/* Матрица серий */}
+                  <section className="bg-[#FFFDF9] border border-[#E7E2DA] rounded-3xl p-5 sm:p-6 shadow-sm">
+                    <h2 className="text-xl font-semibold text-[#1C1917] mb-1" style={{ fontFamily: "'Newsreader', Georgia, serif" }}>
+                      Матрица серий недели (Streak Chains)
+                    </h2>
+                    <p className="text-xs text-[#78716C] mb-4">Кликните по любой ячейке, чтобы отметить привычку за день</p>
+
+                    <div className="divide-y divide-[#EFECE6]">
+                      {habits.map((habit) => {
+                        const { bestStreak } = getHabitStreak(habit);
+                        return (
+                          <div key={habit.id} className="grid grid-cols-12 items-center gap-2 py-2.5">
+                            <div className="col-span-5 pr-2">
+                              <div className="text-xs sm:text-sm font-medium text-[#1C1917] truncate">{habit.title}</div>
+                              <div className="text-[11px] text-[#78716C]">{habit.category}</div>
+                            </div>
+                            <div className="col-span-5 grid grid-cols-7 items-center">
+                              {WEEK_DAYS.map((d, idx) => {
+                                const val = habit.history[idx] || 0;
+                                const done = val >= habit.targetPerDay;
+                                const partial = val > 0 && val < habit.targetPerDay;
+                                const prevDone = idx > 0 && (habit.history[idx - 1] || 0) >= habit.targetPerDay;
+                                const nextDone = idx < 6 && (habit.history[idx + 1] || 0) >= habit.targetPerDay;
+                                return (
+                                  <button
+                                    key={d.id}
+                                    onClick={() => toggleHabitProgress(habit.id, idx)}
+                                    className={`h-7 flex items-center justify-center text-[11px] font-semibold transition-all ${
+                                      done
+                                        ? `bg-[#2D6A4F] text-white ${prevDone ? 'rounded-l-none' : 'rounded-l-xl ml-0.5'} ${nextDone ? 'rounded-r-none' : 'rounded-r-xl mr-0.5'}`
+                                        : partial
+                                        ? 'bg-[#FEF3C7] text-[#B45309] rounded-xl mx-0.5'
+                                        : 'bg-[#EFECE6]/70 text-[#A8A29E] rounded-xl mx-0.5'
+                                    }`}
+                                  >
+                                    {done ? '✓' : partial ? val : '·'}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <div className="col-span-2 text-right">
+                              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-[#FEF3C7] text-[#D97706]">
+                                🔥 {bestStreak}д
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                </div>
+              </main>
+            )}
+
+            {/* ВКЛАДКА 2: ПРОДАЖИ И ДЕКОМПОЗИЦИЯ */}
+            {activeSection === 'sales' && (
+              <section className="mt-7 grid grid-cols-1 lg:grid-cols-12 gap-7 items-start">
+                <div className="lg:col-span-5 bg-[#FFFDF9] border border-[#E7E2DA] rounded-3xl p-6 shadow-sm space-y-4">
+                  <h2 className="text-2xl font-semibold text-[#1C1917]" style={{ fontFamily: "'Newsreader', Georgia, serif" }}>
+                    Калькулятор декомпозиции
+                  </h2>
+                  <div className="flex gap-2">
+                    {[20000, 30000, 50000].map((val) => (
+                      <button
+                        key={val}
+                        onClick={() => setTargetRevenue(val)}
+                        className={`flex-1 py-2 rounded-xl text-xs font-semibold border ${targetRevenue === val ? 'bg-[#1C1917] text-white' : 'bg-[#FAF8F5]'}`}
+                      >
+                        Цель: {val / 1000}к ₽
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    {[2500, 4000, 5000, 10000].map((price) => (
+                      <button
+                        key={price}
+                        onClick={() => setTicketPrice(price)}
+                        className={`flex-1 py-2 rounded-xl text-xs font-semibold border ${ticketPrice === price ? 'bg-[#2D6A4F] text-white' : 'bg-[#FAF8F5]'}`}
+                      >
+                        Чек: {price} ₽
+                      </button>
+                    ))}
+                  </div>
+                  <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-[#E7E2DA] flex items-center justify-between">
+                    <span className="text-xs text-[#57534E]">Нужно закрыть клиентов:</span>
+                    <span className="text-2xl font-bold text-[#2D6A4F]">{Math.ceil(targetRevenue / ticketPrice)} чел.</span>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-7 bg-[#FFFDF9] border border-[#E7E2DA] rounded-3xl p-6 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                    <h2 className="text-2xl font-semibold text-[#1C1917]" style={{ fontFamily: "'Newsreader', Georgia, serif" }}>
+                      База клиентов (клик по статусу меняет этап)
+                    </h2>
+                    <div className="flex gap-1.5">
+                      {['Все', 'Дожим', 'Договорились', 'Оплатил'].map((st) => (
+                        <button
+                          key={st}
+                          onClick={() => setStatusFilter(st)}
+                          className={`px-3 py-1 rounded-xl text-xs font-semibold ${statusFilter === st ? 'bg-[#1C1917] text-white' : 'bg-[#FAF8F5] border border-[#E7E2DA]'}`}
+                        >
+                          {st}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-2.5">
+                    {filteredLeads.map((lead) => (
+                      <div key={lead.id} className="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#FAF8F5] border border-[#E7E2DA]">
+                        <div>
+                          <div className="text-sm font-semibold text-[#1C1917]">{lead.name} <span className="text-xs text-[#2D6A4F]">{lead.handle}</span></div>
+                          <div className="text-xs text-[#57534E]">{lead.comment} • След. касание: {lead.nextTouch}</div>
+                        </div>
+                        <button
+                          onClick={() => cycleLeadStatus(lead.id)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold ${
+                            lead.status === 'Оплатил' ? 'bg-[#2D6A4F] text-white' : 'bg-[#FEF3C7] text-[#B45309]'
+                          }`}
+                        >
+                          {lead.status} ↻
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* ВКЛАДКА 3: КАЗНА И СТРАТЕГИЯ */}
+            {activeSection === 'kazna' && (
+              <section className="mt-7 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-[#FFFDF9] border border-[#E7E2DA] rounded-3xl p-6 shadow-sm">
+                  <h3 className="text-xl font-semibold text-[#1C1917] mb-3" style={{ fontFamily: "'Newsreader', Georgia, serif" }}>
+                    KAZNA • Нужды / Броня
+                  </h3>
+                  <div className="space-y-2">
+                    {kazna.needs.map((n) => (
+                      <div
+                        key={n.id}
+                        onClick={() => toggleKaznaNeed(n.id)}
+                        className="flex items-center justify-between p-3 rounded-xl bg-[#FAF8F5] border border-[#E7E2DA] cursor-pointer"
+                      >
+                        <span className={`text-xs font-medium ${n.done ? 'line-through text-[#78716C]' : 'text-[#1C1917]'}`}>
+                          {n.done ? '✓ ' : '○ '} {n.title}
+                        </span>
+                        <span className="text-xs font-semibold text-[#2D6A4F]">{n.amount}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-[#FFFDF9] border border-[#E7E2DA] rounded-3xl p-6 shadow-sm">
+                  <h3 className="text-xl font-semibold text-[#1C1917] mb-3" style={{ fontFamily: "'Newsreader', Georgia, serif" }}>
+                    Стратегия 2026–2027
+                  </h3>
+                  <div className="space-y-3">
+                    {STRATEGY_TRACKS.map((tr, i) => (
+                      <div key={i} className="p-3.5 rounded-2xl bg-[#FAF8F5] border border-[#E7E2DA]">
+                        <div className="text-sm font-semibold text-[#1C1917]">{tr.name}</div>
+                        <div className="text-xs text-[#78716C] mb-2">{tr.subtitle}</div>
+                        {tr.steps.slice(0, 3).map((st, j) => (
+                          <div key={j} className="text-xs py-1 border-t border-[#E7E2DA]/60">
+                            <strong>{st.period}:</strong> {st.goal}
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
